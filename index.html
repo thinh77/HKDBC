@@ -594,6 +594,18 @@
         });
     }
 
+    function parseBalance(value) {
+      if (value == null) return 0;
+      const raw = String(value).trim();
+      if (!raw) return 0;
+      const normalized = raw
+        .replace(/\s/g, '')
+        .replace(/\./g, '')
+        .replace(/,/g, '.');
+      const numberValue = Number(normalized);
+      return Number.isFinite(numberValue) ? numberValue : 0;
+    }
+
     function populateFilters() {
       const staffSet = new Set();
       const departmentSet = new Set();
@@ -671,7 +683,7 @@
       const totalCustomers = filteredData.length;
       const hasAccount = filteredData.filter(r => r['Có tài khoản'] === 'Có').length;
       const agribankPlus = filteredData.filter(r => r['Agribank Plus'] === 'Có').length;
-      const totalBalance = filteredData.reduce((sum, r) => sum + (parseFloat(r['Số dư']) || 0), 0);
+      const totalBalance = filteredData.reduce((sum, r) => sum + parseBalance(r['Số dư']), 0);
 
       document.getElementById('totalCustomers').textContent = totalCustomers.toLocaleString('vi-VN');
       document.getElementById('hasAccount').textContent = hasAccount.toLocaleString('vi-VN');
@@ -767,7 +779,7 @@
       };
 
       filteredData.forEach(record => {
-        const balance = parseFloat(record['Số dư']) || 0;
+        const balance = parseBalance(record['Số dư']);
         if (balance < 50000) ranges['Dưới 50k']++;
         else if (balance < 1000000) ranges['50k - 1tr']++;
         else if (balance < 10000000) ranges['1tr - 10tr']++;
@@ -1019,7 +1031,7 @@
       filteredData.forEach(record => {
         const staff = String(record['CBTV'] || '').trim();
         if (!staff) return;
-        const balance = parseFloat(record['Số dư']) || 0;
+        const balance = parseBalance(record['Số dư']);
         totalsByStaff[staff] = (totalsByStaff[staff] || 0) + balance;
       });
 
@@ -1128,7 +1140,7 @@
 
       displayData.forEach(record => {
         const row = document.createElement('tr');
-        const balance = parseFloat(record['Số dư']) || 0;
+        const balance = parseBalance(record['Số dư']);
         const hasAccount = record['Có tài khoản'] === 'Có';
         const hasPlus = record['Agribank Plus'] === 'Có';
 
