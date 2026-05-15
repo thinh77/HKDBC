@@ -321,6 +321,34 @@
       text-align: right;
     }
 
+    .table-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .pagination-info {
+      color: var(--muted);
+      font-size: 14px;
+      font-family: var(--font-mono);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      transform: none;
+    }
+
+    button:disabled:hover {
+      background: var(--neutral-sand);
+      transform: none;
+    }
+
     @media (max-width: 768px) {
       .filters-section {
         grid-template-columns: 1fr;
@@ -340,6 +368,22 @@
 
       h1 {
         font-size: 28px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .table-pagination {
+        justify-content: stretch;
+      }
+
+      .table-pagination button {
+        flex: 1;
+      }
+
+      .pagination-info {
+        width: 100%;
+        text-align: center;
+        order: -1;
       }
     }
 
@@ -488,7 +532,7 @@
     </div>
 
     <div class="table-section">
-      <div class="table-title">Chi tiết khách hàng (20 ghi chép hàng đầu)</div>
+      <div class="table-title" id="tableTitle">Chi tiết khách hàng</div>
       <table id="customerTable">
         <thead>
           <tr>
@@ -505,6 +549,7 @@
         <tbody id="tableBody">
         </tbody>
       </table>
+      <div class="table-pagination" id="tablePagination"></div>
     </div>
   </div>
 
@@ -512,6 +557,8 @@
     let allData = [];
     let filteredData = [];
     let charts = {};
+    const TABLE_PAGE_SIZE = 50;
+    let currentTablePage = 1;
 
     // Initialize
     async function init() {
@@ -674,6 +721,7 @@
         return true;
       });
 
+      currentTablePage = 1;
       updateMetrics();
       updateCharts();
       updateTable();
@@ -1129,12 +1177,22 @@
 
     function updateTable() {
       const tbody = document.getElementById('tableBody');
+      const tableTitle = document.getElementById('tableTitle');
+      const pagination = document.getElementById('tablePagination');
       tbody.innerHTML = '';
 
-      const displayData = filteredData.slice(0, 20);
+      const totalRows = filteredData.length;
+      const totalPages = Math.max(1, Math.ceil(totalRows / TABLE_PAGE_SIZE));
+      currentTablePage = Math.min(Math.max(currentTablePage, 1), totalPages);
+
+      const startIndex = (currentTablePage - 1) * TABLE_PAGE_SIZE;
+      const displayData = filteredData.slice(startIndex, startIndex + TABLE_PAGE_SIZE);
+
+      tableTitle.textContent = `Chi tiết khách hàng (${totalRows.toLocaleString('vi-VN')} ghi chép)`;
       
       if (displayData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#87867f;">Không có dữ liệu phù hợp</td></tr>';
+        pagination.innerHTML = '';
         return;
       }
 
@@ -1156,6 +1214,28 @@
         `;
         tbody.appendChild(row);
       });
+
+      updateTablePagination(totalRows, totalPages, startIndex, displayData.length);
+    }
+
+    function updateTablePagination(totalRows, totalPages, startIndex, pageSize) {
+      const pagination = document.getElementById('tablePagination');
+      const from = startIndex + 1;
+      const to = startIndex + pageSize;
+
+      pagination.innerHTML = `
+        <button class="secondary" onclick="goToTablePage(${currentTablePage - 1})" ${currentTablePage === 1 ? 'disabled' : ''}>Trước</button>
+        <span class="pagination-info">
+          Hiển thị ${from.toLocaleString('vi-VN')}-${to.toLocaleString('vi-VN')} / ${totalRows.toLocaleString('vi-VN')} · Trang ${currentTablePage.toLocaleString('vi-VN')} / ${totalPages.toLocaleString('vi-VN')}
+        </span>
+        <button class="secondary" onclick="goToTablePage(${currentTablePage + 1})" ${currentTablePage === totalPages ? 'disabled' : ''}>Sau</button>
+      `;
+    }
+
+    function goToTablePage(page) {
+      const totalPages = Math.max(1, Math.ceil(filteredData.length / TABLE_PAGE_SIZE));
+      currentTablePage = Math.min(Math.max(page, 1), totalPages);
+      updateTable();
     }
 
     function resetFilters() {
