@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Báo Cáo Khách Hàng</title>
+  <script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <style>
+    :root {
+      --bg: oklch(98% 0.004 240);
+      --surface: oklch(100% 0 0);
+      --fg: oklch(18% 0.012 250);
+      --muted: oklch(54% 0.012 250);
+      --border: oklch(92% 0.005 250);
+      --accent: oklch(58% 0.18 255);
+      --accent-warm: #c96442;
+      --accent-light: #d97757;
+      --neutral-dark: #141413;
+      --neutral-sand: #e8e6dc;
+      
+      --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+      --font-mono: ui-monospace, 'JetBrains Mono', Menlo, monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    header {
+      margin-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 500;
+      color: var(--neutral-dark);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted);
+    }
+
+    .filters-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--fg);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="date"],
+    select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--fg);
+      transition: border-color 0.2s;
+    }
+
+    input[type="date"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent-warm);
+      box-shadow: 0 0 0 3px rgba(201, 100, 66, 0.1);
+    }
+
+    .filter-button-group {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    button {
+      padding: 10px 16px;
+      background: var(--accent-warm);
+      color: #faf9f5;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background: #b8523a;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: var(--neutral-sand);
+      color: var(--neutral-dark);
+    }
+
+    button.secondary:hover {
+      background: #dfd9ce;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .metric-card h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .metric-value {
+      font-size: clamp(24px, 5vw, 36px);
+      font-weight: 600;
+      color: var(--accent-warm);
+      font-family: var(--font-mono);
+    }
+
+    .metric-label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .growth-section {
+      margin-bottom: 24px;
+    }
+
+    .chart-container--wide .chart-wrapper {
+      height: 340px;
+    }
+
+    .chart-container--tall .chart-wrapper {
+      height: 420px;
+    }
+
+    .charts-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .staff-charts-section {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .chart-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--neutral-dark);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: var(--accent-warm);
+      border-radius: 2px;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    .table-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    .table-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--neutral-dark);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: var(--accent-warm);
+      border-radius: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--neutral-dark);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: var(--bg);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-yes {
+      background: rgba(201, 100, 66, 0.15);
+      color: var(--accent-warm);
+    }
+
+    .status-no {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--muted);
+    }
+
+    .number {
+      font-family: var(--font-mono);
+      text-align: right;
+    }
+
+    @media (max-width: 768px) {
+      .filters-section {
+        grid-template-columns: 1fr;
+      }
+
+      .charts-section {
+        grid-template-columns: 1fr;
+      }
+
+      .staff-charts-section {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        padding: 20px 16px;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-item {
+      background: var(--bg);
+      padding: 12px 16px;
+      border-radius: 8px;
+      border-left: 3px solid var(--accent-warm);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--neutral-dark);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 Báo Cáo Khách Hàng Mới</h1>
+      <p class="subtitle">Dashboard tương tác - Phân tích dữ liệu khách hàng, tài khoản và Agribank Plus</p>
+    </header>
+
+    <div class="filters-section">
+      <div class="filter-group">
+        <label for="dateFrom">Từ ngày</label>
+        <input type="date" id="dateFrom">
+      </div>
+      <div class="filter-group">
+        <label for="dateTo">Đến ngày</label>
+        <input type="date" id="dateTo">
+      </div>
+      <div class="filter-group">
+        <label for="staff">Cán bộ</label>
+        <select id="staff">
+          <option value="">Tất cả</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="department">Phòng ban</label>
+        <select id="department">
+          <option value="">Tất cả</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="branch">Chi nhánh</label>
+        <select id="branch">
+          <option value="">Tất cả</option>
+        </select>
+      </div>
+      <div class="filter-button-group">
+        <button onclick="applyFilters()">Lọc dữ liệu</button>
+        <button class="secondary" onclick="resetFilters()">Đặt lại</button>
+      </div>
+    </div>
+
+    <div class="metrics-grid" id="metricsGrid">
+      <div class="metric-card">
+        <h3>Tổng khách hàng</h3>
+        <div class="metric-value" id="totalCustomers">0</div>
+      </div>
+      <div class="metric-card">
+        <h3>Có tài khoản</h3>
+        <div class="metric-value" id="hasAccount">0</div>
+      </div>
+      <div class="metric-card">
+        <h3>Agribank Plus</h3>
+        <div class="metric-value" id="agribankPlus">0</div>
+      </div>
+      <div class="metric-card">
+        <h3>Tổng số dư (VNĐ)</h3>
+        <div class="metric-value" id="totalBalance">0</div>
+      </div>
+    </div>
+
+    <div class="growth-section">
+      <div class="chart-container chart-container--wide">
+        <div class="chart-title">Tăng trưởng khách hàng theo tháng</div>
+        <div class="chart-wrapper">
+          <canvas id="growthChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-section">
+      <div class="chart-container">
+        <div class="chart-title">Phân bố số dư tài khoản</div>
+        <div class="chart-wrapper">
+          <canvas id="balanceChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Khách hàng có tài khoản vs không</div>
+        <div class="chart-wrapper">
+          <canvas id="accountChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Agribank Plus - Có vs Không</div>
+        <div class="chart-wrapper">
+          <canvas id="agribankChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="staff-charts-section">
+      <div class="chart-container chart-container--tall">
+        <div class="chart-title">Số khách hàng theo cán bộ (Top 10)</div>
+        <div class="chart-wrapper">
+          <canvas id="staffChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-container chart-container--tall">
+        <div class="chart-title">Tổng số dư theo cán bộ (Top 10)</div>
+        <div class="chart-wrapper">
+          <canvas id="staffBalanceChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-title">Chi tiết khách hàng (20 ghi chép hàng đầu)</div>
+      <table id="customerTable">
+        <thead>
+          <tr>
+            <th>Tên HKD</th>
+            <th>Có tài khoản</th>
+            <th>Số dư (VNĐ)</th>
+            <th>Agribank Plus</th>
+            <th>Cán bộ</th>
+            <th>Phòng ban</th>
+            <th>Chi nhánh</th>
+            <th>Ngày tạo</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let allData = [];
+    let filteredData = [];
+    let charts = {};
+
+    // Initialize
+    async function init() {
+      await loadData();
+      populateFilters();
+      applyFilters();
+    }
+
+    const DATA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJfX83u3ffamXtTGaTk_GcXFlW0MF-j73tScHAtw05C4uzWgmC2E-FXEwBykzJORiBqot8Rbk_9pYu/pub?gid=0&single=true&output=csv';
+
+    async function loadData() {
+      try {
+        const response = await fetch(DATA_URL);
+        const csvText = await response.text();
+        allData = parseCsv(csvText);
+        console.log(`Loaded ${allData.length} records`);
+      } catch (e) {
+        console.error('Error loading data:', e);
+        allData = [];
+      }
+    }
+
+    function parseCsv(csvText) {
+      const rows = [];
+      let row = [];
+      let value = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < csvText.length; i++) {
+        const char = csvText[i];
+        const nextChar = csvText[i + 1];
+
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            value += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+
+        if (char === ',' && !inQuotes) {
+          row.push(value);
+          value = '';
+          continue;
+        }
+
+        if ((char === '\n' || char === '\r') && !inQuotes) {
+          if (char === '\r' && nextChar === '\n') {
+            i++;
+          }
+          row.push(value);
+          if (row.some(cell => cell !== '')) {
+            rows.push(row);
+          }
+          row = [];
+          value = '';
+          continue;
+        }
+
+        value += char;
+      }
+
+      row.push(value);
+      if (row.some(cell => cell !== '')) {
+        rows.push(row);
+      }
+
+      if (rows.length === 0) return [];
+      const headers = rows[0].map(h => h.trim());
+      return rows.slice(1)
+        .filter(r => r.some(cell => String(cell).trim() !== ''))
+        .map(r => {
+          const record = {};
+          headers.forEach((h, idx) => {
+            record[h] = (r[idx] ?? '').trim();
+          });
+          return record;
+        });
+    }
+
+    function populateFilters() {
+      const staffSet = new Set();
+      const departmentSet = new Set();
+      const branchSet = new Set();
+
+      allData.forEach(record => {
+        if (record['CBTV']) staffSet.add(record['CBTV']);
+        if (record['Phòng ban']) departmentSet.add(record['Phòng ban']);
+        if (record['Chi nhánh']) branchSet.add(record['Chi nhánh']);
+      });
+
+      // Sort and populate
+      populateSelect('staff', Array.from(staffSet).sort());
+      populateSelect('department', Array.from(departmentSet).sort());
+      populateSelect('branch', Array.from(branchSet).sort());
+
+      // Set default date range (sort by actual time, not lexicographic Date string)
+      const allDates = allData
+        .map(r => parseDate(r['Ngày tạo']))
+        .filter(d => d)
+        .sort((a, b) => a - b);
+      if (allDates.length > 0) {
+        document.getElementById('dateFrom').valueAsDate = new Date(allDates[0]);
+        document.getElementById('dateTo').valueAsDate = new Date(allDates[allDates.length - 1]);
+      }
+    }
+
+    function populateSelect(id, options) {
+      const select = document.getElementById(id);
+      options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        select.appendChild(option);
+      });
+    }
+
+    function parseDate(dateStr) {
+      // Format: DD/MM/YYYY
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return null;
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+
+    function formatDate(date) {
+      return date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear();
+    }
+
+    function applyFilters() {
+      const dateFrom = document.getElementById('dateFrom').valueAsDate;
+      const dateTo = document.getElementById('dateTo').valueAsDate;
+      const staff = document.getElementById('staff').value;
+      const department = document.getElementById('department').value;
+      const branch = document.getElementById('branch').value;
+
+      filteredData = allData.filter(record => {
+        const recordDate = parseDate(record['Ngày tạo']);
+        
+        if (dateFrom && recordDate < dateFrom) return false;
+        if (dateTo && recordDate > dateTo) return false;
+        if (staff && record['CBTV'] !== staff) return false;
+        if (department && record['Phòng ban'] !== department) return false;
+        if (branch && record['Chi nhánh'] !== branch) return false;
+
+        return true;
+      });
+
+      updateMetrics();
+      updateCharts();
+      updateTable();
+    }
+
+    function updateMetrics() {
+      const totalCustomers = filteredData.length;
+      const hasAccount = filteredData.filter(r => r['Có tài khoản'] === 'Có').length;
+      const agribankPlus = filteredData.filter(r => r['Agribank Plus'] === 'Có').length;
+      const totalBalance = filteredData.reduce((sum, r) => sum + (parseFloat(r['Số dư']) || 0), 0);
+
+      document.getElementById('totalCustomers').textContent = totalCustomers.toLocaleString('vi-VN');
+      document.getElementById('hasAccount').textContent = hasAccount.toLocaleString('vi-VN');
+      document.getElementById('agribankPlus').textContent = agribankPlus.toLocaleString('vi-VN');
+      document.getElementById('totalBalance').textContent = Math.round(totalBalance).toLocaleString('vi-VN');
+    }
+
+    function updateCharts() {
+      updateGrowthChart();
+      updateBalanceChart();
+      updateAccountChart();
+      updateAgribankChart();
+      updateStaffChart();
+      updateStaffBalanceChart();
+    }
+
+    function updateGrowthChart() {
+      // Group by month, then compute cumulative growth in chronological order.
+      const countsByMonth = {};
+
+      filteredData.forEach(record => {
+        const dateStr = record['Ngày tạo'];
+        const d = parseDate(dateStr);
+        if (!d) return;
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        countsByMonth[monthKey] = (countsByMonth[monthKey] || 0) + 1;
+      });
+
+      const monthKeys = Object.keys(countsByMonth).sort();
+      const labels = monthKeys.map(monthKey => {
+        const [year, month] = monthKey.split('-');
+        return `${month}/${year}`;
+      });
+
+      let cumulative = 0;
+      const data = monthKeys.map(monthKey => {
+        cumulative += countsByMonth[monthKey] || 0;
+        return cumulative;
+      });
+
+      createOrUpdateChart('growthChart', {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Tích lũy khách hàng theo tháng',
+            data,
+            borderColor: '#c96442',
+            backgroundColor: 'rgba(201, 100, 66, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#c96442',
+            pointBorderColor: '#faf9f5',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `Tích lũy đến tháng: ${Number(ctx.parsed.y || 0).toLocaleString('vi-VN')}`
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 },
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    function updateBalanceChart() {
+      // Group by requested account balance thresholds.
+      const ranges = {
+        'Dưới 50k': 0,
+        '50k - 1tr': 0,
+        '1tr - 10tr': 0,
+        '10tr - 50tr': 0,
+        '50tr trở lên': 0
+      };
+
+      filteredData.forEach(record => {
+        const balance = parseFloat(record['Số dư']) || 0;
+        if (balance < 50000) ranges['Dưới 50k']++;
+        else if (balance < 1000000) ranges['50k - 1tr']++;
+        else if (balance < 10000000) ranges['1tr - 10tr']++;
+        else if (balance < 50000000) ranges['10tr - 50tr']++;
+        else ranges['50tr trở lên']++;
+      });
+
+      const valueLabelPlugin = makeTopValueLabelPlugin({
+        formatter: (v) => Number(v || 0).toLocaleString('vi-VN')
+      });
+
+      createOrUpdateChart('balanceChart', {
+        type: 'bar',
+        plugins: [valueLabelPlugin],
+        data: {
+          labels: Object.keys(ranges),
+          datasets: [{
+            label: 'Số lượng khách hàng',
+            data: Object.values(ranges),
+            backgroundColor: ['#e8e6dc', '#d97757', '#c96442', '#b8523a', '#8f3f2e'],
+            borderRadius: 8,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { top: 24 } },
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function updateAccountChart() {
+      const accountStatus = {
+        'Có': filteredData.filter(r => r['Có tài khoản'] === 'Có').length,
+        'Không': filteredData.filter(r => r['Có tài khoản'] !== 'Có').length
+      };
+
+      createOrUpdateChart('accountChart', {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(accountStatus),
+          datasets: [{
+            data: Object.values(accountStatus),
+            backgroundColor: ['#c96442', '#e8e6dc'],
+            borderColor: '#faf9f5',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { padding: 16, font: { size: 12 } }
+            }
+          }
+        }
+      });
+    }
+
+    function updateAgribankChart() {
+      const agribankStatus = {
+        'Có': filteredData.filter(r => r['Agribank Plus'] === 'Có').length,
+        'Không': filteredData.filter(r => r['Agribank Plus'] !== 'Có').length
+      };
+
+      createOrUpdateChart('agribankChart', {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(agribankStatus),
+          datasets: [{
+            data: Object.values(agribankStatus),
+            backgroundColor: ['#c96442', '#e8e6dc'],
+            borderColor: '#faf9f5',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { padding: 16, font: { size: 12 } }
+            }
+          }
+        }
+      });
+    }
+
+    function makeEndValueLabelPlugin({
+      formatter,
+      color = '#141413',
+      padding = 8,
+      font = "600 12px ui-monospace, 'JetBrains Mono', Menlo, monospace"
+    } = {}) {
+      return {
+        id: 'endValueLabels',
+        afterDatasetsDraw(chart) {
+          const meta = chart.getDatasetMeta(0);
+          if (!meta?.data?.length) return;
+
+          const { ctx, chartArea } = chart;
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.font = font;
+          ctx.textBaseline = 'middle';
+
+          meta.data.forEach((bar, i) => {
+            const raw = chart.data?.datasets?.[0]?.data?.[i];
+            const text = formatter ? formatter(raw, i) : String(raw ?? '');
+            if (!text) return;
+
+            ctx.fillText(text, bar.x + padding, bar.y);
+          });
+
+          ctx.restore();
+        }
+      };
+    }
+
+    function makeTopValueLabelPlugin({
+      formatter,
+      color = '#141413',
+      padding = 8,
+      font = "600 12px ui-monospace, 'JetBrains Mono', Menlo, monospace"
+    } = {}) {
+      return {
+        id: 'topValueLabels',
+        afterDatasetsDraw(chart) {
+          const meta = chart.getDatasetMeta(0);
+          if (!meta?.data?.length) return;
+
+          const { ctx, chartArea } = chart;
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.font = font;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+
+          meta.data.forEach((bar, i) => {
+            const raw = chart.data?.datasets?.[0]?.data?.[i];
+            const text = formatter ? formatter(raw, i) : String(raw ?? '');
+            if (!text) return;
+
+            const y = Math.max(bar.y - padding, chartArea.top + 2);
+            ctx.fillText(text, bar.x, y);
+          });
+
+          ctx.restore();
+        }
+      };
+    }
+
+    function updateStaffChart() {
+      const countsByStaff = {};
+      filteredData.forEach(record => {
+        const staff = String(record['CBTV'] || '').trim();
+        if (!staff) return;
+        countsByStaff[staff] = (countsByStaff[staff] || 0) + 1;
+      });
+
+      const entries = Object.entries(countsByStaff)
+        .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0], 'vi'));
+
+      const TOP_N = 10;
+      const top = entries.slice(0, TOP_N);
+
+      let labels = top.map(([name]) => name);
+      let values = top.map(([, c]) => c);
+
+      if (labels.length === 0) {
+        labels = ['Không có dữ liệu'];
+        values = [0];
+      }
+
+      const truncate = (s, max = 26) => (s && s.length > max ? s.slice(0, max - 1) + '…' : s);
+      const maxValue = Math.max(...values, 0);
+      const axisMax = maxValue > 0 ? Math.ceil(maxValue * 1.28) : 1;
+      const valueLabelPlugin = makeEndValueLabelPlugin({
+        formatter: (v) => Number(v || 0).toLocaleString('vi-VN')
+      });
+
+      createOrUpdateChart('staffChart', {
+        type: 'bar',
+        plugins: [valueLabelPlugin],
+        data: {
+          labels,
+          datasets: [{
+            label: 'Số khách hàng',
+            data: values,
+            backgroundColor: 'rgba(201, 100, 66, 0.65)',
+            borderColor: '#c96442',
+            borderWidth: 1,
+            borderRadius: 8,
+            borderSkipped: false,
+            maxBarThickness: 18
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { right: 16 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => items?.[0]?.label || '',
+                label: (ctx) => `Số khách hàng: ${Number(ctx.parsed.x || 0).toLocaleString('vi-VN')}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: axisMax,
+              ticks: { precision: 0 },
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            y: {
+              grid: { display: false },
+              ticks: {
+                font: { size: 11 },
+                callback: function(value) {
+                  const label = this.getLabelForValue(value);
+                  return truncate(label, 28);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+
+
+    function updateStaffBalanceChart() {
+      const totalsByStaff = {};
+      filteredData.forEach(record => {
+        const staff = String(record['CBTV'] || '').trim();
+        if (!staff) return;
+        const balance = parseFloat(record['Số dư']) || 0;
+        totalsByStaff[staff] = (totalsByStaff[staff] || 0) + balance;
+      });
+
+      const entries = Object.entries(totalsByStaff)
+        .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0], 'vi'));
+
+      const TOP_N = 10;
+      const top = entries.slice(0, TOP_N);
+
+      let labels = top.map(([name]) => name);
+      let values = top.map(([, sum]) => (sum || 0) / 1e6); // triệu VNĐ
+
+      if (labels.length == 0) {
+        labels = ['Không có dữ liệu'];
+        values = [0];
+      }
+
+      const truncate = (s, max = 26) => (s && s.length > max ? s.slice(0, max - 1) + '…' : s);
+      const maxValue = Math.max(...values, 0);
+      const axisMax = maxValue > 0 ? Math.ceil(maxValue * 1.36) : 1;
+      const valueLabelPlugin = makeEndValueLabelPlugin({
+        formatter: (v) => {
+          const n = Number(v || 0);
+          const formatted = n.toLocaleString('vi-VN', { maximumFractionDigits: n < 1000 ? 1 : 0 });
+          return `${formatted} tr`;
+        }
+      });
+
+      createOrUpdateChart('staffBalanceChart', {
+        type: 'bar',
+        plugins: [valueLabelPlugin],
+        data: {
+          labels,
+          datasets: [{
+            label: 'Tổng số dư (triệu VNĐ)',
+            data: values,
+            backgroundColor: 'rgba(201, 100, 66, 0.25)',
+            borderColor: '#c96442',
+            borderWidth: 1,
+            borderRadius: 8,
+            borderSkipped: false,
+            maxBarThickness: 18
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { right: 16 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => items?.[0]?.label || '',
+                label: (ctx) => `Tổng số dư: ${Number(ctx.parsed.x || 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} triệu VNĐ`
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: axisMax,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: {
+                callback: (v) => {
+                  const n = Number(v);
+                  return Number.isFinite(n) ? n.toLocaleString('vi-VN') : v;
+                }
+              }
+            },
+            y: {
+              grid: { display: false },
+              ticks: {
+                font: { size: 11 },
+                callback: function(value) {
+                  const label = this.getLabelForValue(value);
+                  return truncate(label, 28);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createOrUpdateChart(canvasId, config) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      
+      if (charts[canvasId]) {
+        charts[canvasId].destroy();
+      }
+      
+      charts[canvasId] = new Chart(ctx, config);
+    }
+
+    function updateTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      const displayData = filteredData.slice(0, 20);
+      
+      if (displayData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#87867f;">Không có dữ liệu phù hợp</td></tr>';
+        return;
+      }
+
+      displayData.forEach(record => {
+        const row = document.createElement('tr');
+        const balance = parseFloat(record['Số dư']) || 0;
+        const hasAccount = record['Có tài khoản'] === 'Có';
+        const hasPlus = record['Agribank Plus'] === 'Có';
+
+        row.innerHTML = `
+          <td><strong>${record['Tên HKD'] || '-'}</strong></td>
+          <td><span class="status-badge ${hasAccount ? 'status-yes' : 'status-no'}">${record['Có tài khoản'] || '-'}</span></td>
+          <td class="number">${balance.toLocaleString('vi-VN')}</td>
+          <td><span class="status-badge ${hasPlus ? 'status-yes' : 'status-no'}">${record['Agribank Plus'] || '-'}</span></td>
+          <td>${record['CBTV'] || '-'}</td>
+          <td>${record['Phòng ban'] || '-'}</td>
+          <td>${record['Chi nhánh'] || '-'}</td>
+          <td>${record['Ngày tạo'] || '-'}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function resetFilters() {
+      document.getElementById('dateFrom').value = '';
+      document.getElementById('dateTo').value = '';
+      document.getElementById('staff').value = '';
+      document.getElementById('department').value = '';
+      document.getElementById('branch').value = '';
+      applyFilters();
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
